@@ -1,0 +1,26 @@
+{
+  "name": "Catura",
+  "version": "1.0.0",
+  "description": "Catura",
+  "main": "hello-world-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified! Configure in package.json\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "node.js",
+    "eclipse",
+    "nodeclipse"
+  ],
+  "author": "",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "https": "^1.0.0",
+    "kaltura-client": "^1.0.6",
+    "mediasoup-server": "^1.0.3",
+    "path": "^0.12.7",
+    "sqlite3": "^3.1.8"
+  }
+}
