@@ -27,15 +27,13 @@ class Recording {
 		let d = new Date();
 		this.time = d.getTime();
 		
-		let This = this;
-		
 		streamer.record(rtspUrl, filepath, logpath)
 		.on('error', (err) => {
 			console.error(`Streamer [${id}] error: ${err}`);
 		})
 		.on('exit', (code, signal) => {
 			console.log(`Streamer [${id}] closed, log: ${logpath}`);
-			This.done();
+			this.done();
 		});
 	}
 	
@@ -99,8 +97,6 @@ class Server {
 	}
     
     startSession() {
-        let This = this;
-        
 		let userId = null;
 		let type = kaltura.enums.SessionType.USER;
 		let expiry = null;
@@ -109,7 +105,7 @@ class Server {
 		kaltura.services.session.start(kalturaConfig.secret, userId, type, kalturaConfig.partnerId, expiry, privileges)
     	.completion((success, ks) => {
     		if(success) {
-        		This.client.setKs(ks);
+    			this.client.setKs(ks);
     		}
     		else {
     			console.error(ks.message);
@@ -119,8 +115,6 @@ class Server {
     }
 	
     listen(port) {
-        let This = this;
-
         const options = {
         	key: fs.readFileSync('keys/server.key'),
         	cert: fs.readFileSync('keys/server.crt'),
@@ -129,7 +123,7 @@ class Server {
 		const app = express();
 		app.use(express.static('./public'));
 		app.post(/.*\.json$/, (request, response) => {
-			This.json(request)
+			this.json(request)
 	        .then((content) => {
 	        	response.send(content);
 	        }, (err) => {
@@ -149,39 +143,6 @@ class Server {
         })
         .on('listen', () => {
         	console.log('Mediasoup server started');
-        })
-        .on('new-room', (room, connection) => {
-    		room.roomOptions = {
-				mediaCodecs : [
-					{
-						kind        : 'audio',
-						name        : 'audio/opus',
-						payloadType : 100,
-						clockRate   : 48000,
-						numChannels : 2
-					}
-				]
-			};
-        	if(connection.isMobile) {
-        		room.roomOptions.mediaCodecs.push({
-					kind      : 'video',
-					name      : 'video/vp8',
-					payloadType : 101,
-					clockRate : 90000
-				});
-        	}
-        	else {
-        		room.roomOptions.mediaCodecs.push({
-					kind       : 'video',
-					name       : 'video/h264',
-					payloadType: 103,
-					clockRate  : 90000,
-					parameters :
-					{
-						packetizationMode : 1
-					}
-				});
-        	}
         })
         .on('new-connection', (connection) => {
         	console.log(`New connection [${connection.id}]`);
@@ -209,29 +170,16 @@ class Server {
         		console.log(`Connection [${connection.id}] signaling disconnected`);
         		connection = null;
         	});
-        	
-        	connection.socket
-        	.on('init', (isMobile) => {
-        		connection.isMobile = isMobile;
-        	})
-        	.on('record', () => {
-        		let sourceId = connection.peerConnection.peer.id;
-        		try{
-        			This.record(sourceId);
-        			connection.socket.emit('recording', sourceId);
-        		}
-        		catch(err) {
-        			connection.socket.emit('error', err);
-        		}
-        	});
         });
 
         this.rtspServer = new RtspServer(webRtcServer);
         this.rtspServer
         .listen(5000)
         .on('new-source', (source) => {
-        	let rtspUrl = `rtsp://127.0.0.1:${This.rtspServer.port}/${source.id}.sdp`;
-        	console.log(`New RTSP source ${rtspUrl}`);
+        	source.on('enabled', () => {
+    			this.record(source.id);
+    			source.connection.socket.emit('recording', source.id);
+        	});
         })
         .on('request', (method, uri) => {
         	console.log(`RTSP [${method}] ${uri}`);
@@ -239,14 +187,6 @@ class Server {
     }
 
     record(sourceId) {
-		if(!this.rtspServer.sources[sourceId]) {
-			throw 'Source stream not found';
-		}
-		
-		if(!this.rtspServer.sources[sourceId].enabled) {
-			throw 'Source stream not enabled';
-		}
-			
 		console.log(`Source [${sourceId}] recording`);
 
     	let rtspUrl = `rtsp://127.0.0.1:${this.rtspServer.port}/${sourceId}.sdp`;
@@ -260,21 +200,19 @@ class Server {
         let filePath = request.url;
         let method = path.basename(filePath, '.json');
         
-        let This = this;
-
         return new Promise((resolve, reject) => {
 
-            if (!This[method] || typeof (This[method]) !== 'function') {
+            if (!this[method] || typeof (this[method]) !== 'function') {
             	return resolve(null);
             }
             	
             var body = '';
-            request.on('data', function (data) {
+            request.on('data', (data) => {
                 body += data;
             });
-            request.on('end', function () {
+            request.on('end', () => {
                 var data = body.length ? JSON.parse(body) : null;
-                This[method](data)
+                this[method](data)
             	.then((data) => {
                     resolve(JSON.stringify(data));
             	})
@@ -288,15 +226,13 @@ class Server {
     markers(bounds) {
     	let {south, west, north, east} = bounds;
 
-        let This = this;
-        
         return new Promise((resolve, reject) => {
-			This.db.all('SELECT * FROM markers', (err, rows) => {
+        	this.db.all('SELECT * FROM markers', (err, rows) => {
 				if(err) {
 					reject(err);
 				}
 				else {
-					resolve(rows.map((row) => This.db2marker(row)));
+					resolve(rows.map((row) => this.db2marker(row)));
 				}
 			});
         });
@@ -321,11 +257,10 @@ class Server {
     }
     
     addMarkerToDB(marker, entryId = null) {
-        let This = this;
-        
         return new Promise((resolve, reject) => {
         	let d = new Date();
         	let createdAt = d.getTime();
+        	let This = this;
         	
         	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng) VALUES (?, ?, ?, ?, ?, ?)';
         	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng], function(err) {
@@ -402,13 +337,11 @@ class Server {
     }
     
     addMarker(marker) {
-        let This = this;
-        
         if(marker.recordingId && marker.recordingId.length) {
         	return this.createEntry(marker)
         	.then((entryId) => {
-        		This.uploadEntry(entryId, marker.recordingId);
-        		return This.addMarkerToDB(marker, entryId);
+        		this.uploadEntry(entryId, marker.recordingId);
+        		return this.addMarkerToDB(marker, entryId);
         	});
         }
         else {
