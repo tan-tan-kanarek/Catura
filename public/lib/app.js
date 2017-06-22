@@ -110,6 +110,31 @@ function initSocketIo() {
     socket.on('ready', function(){
         console.log('Receive [ready]');
     });
+
+    socket.on('login', function(user){
+        console.log('Receive [login]', user);
+        // TODO
+    });
+
+    socket.on('get-me', function(user){
+        console.log('Receive [get-me]', user);
+        // TODO
+    });
+
+    socket.on('get-user', function(user){
+        console.log('Receive [get-user]', user);
+        // TODO
+    });
+
+    socket.on('message-sent', function(messageId){
+        console.log('Receive [message-sent]', messageId);
+        // TODO
+    });
+
+    socket.on('private-message-sent', function(messageId){
+        console.log('Receive [private-message-sent]', messageId);
+        // TODO
+    });
 }
 
 function setAnswer(sessionDescription) {
@@ -218,6 +243,95 @@ function joinRoom(roomId) {
         .catch(function(err) {
             console.error(err);
         });
+}
+
+/**
+ * Only userId is mandatory
+ */
+function addUser(userId, email, password, title, description, image) {
+	let user = {
+		userId: userId
+	};
+
+	if(email) {
+		user.email = email;
+	}
+	if(password) {
+		user.password = password;
+	}
+	if(title) {
+		user.title = title;
+	}
+	if(description) {
+		user.description = description;
+	}
+	if(image) {
+		user.image = image;
+	}
+	send('add-user', user);
+}
+
+function loginWithId(userId) {
+	send('login-with-id', userId);
+}
+
+/**
+ * Callback is login
+ */
+function login(email, password) {
+	send('login', email, password);
+}
+
+/**
+ * No argument is mandatory
+ */
+function updateUser(email, password, title, description, image) {
+	let user = {
+	};
+
+	if(email) {
+		user.email = email;
+	}
+	if(password) {
+		user.password = password;
+	}
+	if(title) {
+		user.title = title;
+	}
+	if(description) {
+		user.description = description;
+	}
+	if(image) {
+		user.image = image;
+	}
+	send('update-user', user);
+}
+
+/**
+ * Call it without userId in order to get current user
+ * Callback are get-user or get-me.
+ */
+function getUser(userId) {
+	send('get-user', userId);
+}
+
+/**
+ * Only type, title and Lat, Lng are mandatory
+ * Radius is required for messages to specific area
+ * Callback is message-sent
+ */
+function sendMessage(type, title, description, lat, lng, radius, image) {
+	let message = {};
+	send('send-message', message);
+}
+
+/**
+ * Image is not required
+ * Callback is private-message-sent
+ */
+function sendPrivateMessage(toUserId, message, image) {
+	let message = {};
+	send('send-private-message', toUserId, message);
 }
 
 function send(type, data) {
