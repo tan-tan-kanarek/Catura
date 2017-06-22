@@ -28,6 +28,7 @@ styles = [
 ];
 
 function init() {
+    updateHeight();
     localVideo = document.getElementById('localVideo');
 
     if (window.window.webkitRTCPeerConnection) {
@@ -335,6 +336,7 @@ function initMap(location, zoom) {
 
     map.addListener('bounds_changed', () => {
         loadMarkers();
+        hideLoader();
 });
 
     map.setOptions({
@@ -512,10 +514,18 @@ function stopLocalStream(stream) {
     }
 }
 
+function openActions(){
+    if(!currentMarker) {
+        return alert('חפש תחילה את הכתובת בה אתה נמצא');
+    }
+    $('#actions').show();
+}
+
 function openForm() {
     if(!currentMarker) {
         return alert('חפש תחילה את הכתובת בה אתה נמצא');
     }
+    hideActions();
     jQuery('#videoDialog').hide();
     jQuery('#openVideo').show();
     jQuery('#recordingId').val('');
@@ -525,3 +535,24 @@ function openForm() {
     jQuery('#description').val('');
     jQuery('#form').show();
 }
+
+function hideActions(){
+    $('#actions').hide();
+
+}
+
+function showLoader(){
+    $('#spinner').show();
+}
+function hideLoader(){
+    $('#spinner').hide();
+    updateHeight();
+}
+function updateHeight(){
+    var totalHeight = $(window).height();
+    $("#map").height(totalHeight - 150);
+}
+
+window.addEventListener("orientationchange", function() {
+    updateHeight();
+});
