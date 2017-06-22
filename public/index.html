@@ -9,16 +9,17 @@
 	<link rel="stylesheet" href="css/app.css" />
 </head>
 <body dir="rtl">
-    <div id="userProfile" class="hover left">
-		<div id="loginBtn" onclick="login()">התחבר</div>
-		<div id="signupBtn" onclick="openUserForm()">הרשם</div>
-		<div id="userDetail">הי משה</div>
-	</div>
 	<div class="search">
 		<input id="search" type="text" placeholder="חפש כתובת" />
 	</div>
 	<div id="map"></div>
 	<div id="legendContainer" align="center">
+	    <div id="userProfile">
+	    	<img id="userProfileImage"/>
+			<span id="userProfileTitle"></span>
+			<div id="userProfileDescription"></div>
+			<ul id="userProfileLog"></ul>
+		</div>
 		<div id="legend">
 			<span id="legendUser"></span>
 			<span id="legendTime"></span>

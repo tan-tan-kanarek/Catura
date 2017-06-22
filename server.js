@@ -6,6 +6,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3');
 const Promise = require('bluebird');
 const kaltura = require('kaltura-client');
+const base64 = require('node-base64-image');
 const {WebRtcServer, RtspServer, ffmpeg} = require('mediasoup-server');
 
 const recordingsPath = path.join(__dirname, "recordings");
@@ -125,6 +126,19 @@ class Server {
 			this.json(request)
 	        .then((content) => {
 	        	response.send(content);
+	        }, (err) => {
+	            response.writeHead(500);
+	            response.end(`Sorry, check with the site admin for error: ${err}`);
+	            response.end();
+	        });
+		});
+		app.get(/.*\.profile\.jpg$/, (request, response) => {
+			this.image(request)
+	        .then((filename) => {
+	            fs.readFile(filename, (err, data) => {
+	            	response.writeHead(200, {'Content-Type': 'image/jpg' });
+	            	response.end(data, 'binary');
+	            });
 	        }, (err) => {
 	            response.writeHead(500);
 	            response.end(`Sorry, check with the site admin for error: ${err}`);
@@ -357,7 +371,7 @@ class Server {
         return new Promise((resolve, reject) => {
     		let sql = `SELECT * FROM users WHERE id = ?`;
     		console.log(`SQL: ${sql}`);
-        	this.db.all(sql, [userId], (err, row) => {
+        	this.db.get(sql, [userId], (err, row) => {
     			if(err) {
     				reject('User not found');
     			}
@@ -445,6 +459,28 @@ class Server {
     			resolve(this.lastID);
     		});
 		});
+	}
+    
+    image(request) {
+        let filePath = request.url;
+        let userId = path.basename(filePath, '.profile.jpg');
+        let filename = `./cache/${userId}.jpg`;
+
+        return new Promise((resolve, reject) => {
+        	fs.exists(filename, (exists) => {
+        		if(exists) {
+        			resolve(filename);
+        		}
+        		else {
+                    this.getUser(userId)
+                    .then((user) => {
+                    	base64.decode(Buffer.from(user.image), {filename: `./cache/${userId}`}, (err, data) => {
+                    		resolve(filename);
+                    	})
+                    });
+        		}
+        	});
+    	});
 	}
     
     json(request) {

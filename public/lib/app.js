@@ -583,7 +583,12 @@ function showMarker(markerData) {
 }
 
 function showUserDetails(user){
-	// TODO
+    jQuery('#legend').hide();
+    
+    jQuery('#userProfileTitle').text(user.title);
+    jQuery('#userProfileDescription').text(user.description);
+    jQuery('#userProfileImage').attr('src', '/' + user.id + '.profile.jpg');
+    jQuery('#userProfile').show();
 }
 
 function pad(input) {
