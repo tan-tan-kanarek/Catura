@@ -85,15 +85,6 @@ class Server {
 				delete this.recordings[recordingId];
 			}
 		}
-		
-		let d = new Date();
-		let deprecatedTime = d.getTime() - (1000 * 60 * 60 * 12); // 12 hours ago
-		let sql = `DELETE FROM markers WHERE createdAt < ${deprecatedTime}`;
-		this.db.run(sql, (err) => {
-			if(err) {
-				console.error(err);
-			}
-		});
 	}
     
     startSession() {
@@ -170,6 +161,58 @@ class Server {
         		console.log(`Connection [${connection.id}] signaling disconnected`);
         		connection = null;
         	});
+        	
+        	connection.socket
+        	.on('add-user', (user) => {
+        		console.log(`Connection [${connection.id}] adding user`, user);
+        		this.addUser(user);
+        	})
+        	.on('login', (email, password) => {
+        		console.log(`Connection [${connection.id}] logging in user [${email}]`);
+        		this.login(email, password)
+        		.then((user) => {
+        			connection.socket.emit('login', user);
+        		});
+        	})
+        	.on('login-with-id', (userId) => {
+        		console.log(`Connection [${connection.id}] logging in user with id [${userId}]`);
+        		connection.userId = userId;
+        	})
+        	.on('update-user', (user) => {
+        		console.log(`Connection [${connection.id}] updating user [${connection.userId}]`, user);
+        		this.updateUser(connection.userId, user);
+        	})
+        	.on('get-user', (userId) => {
+        		if(!userId) {
+        			userId = connection.userId;
+        		}
+        		console.log(`Connection [${connection.id}] getting user [${userId}]`);
+        		this.getUser(userId)
+        		.then((user) => {
+        			if(userId === connection.userId) {
+        				connection.socket.emit('get-me', user);
+        			}
+        			else {
+        				connection.socket.emit('get-user', user);
+        			}
+        		});
+        	})
+        	.on('send-message', (message) => {
+        		message.userId = connection.userId;
+        		console.log(`Connection [${connection.id}] sending message`, message);
+        		this.sendMessage(message)
+        		.then((messageId) => {
+       				connection.socket.emit('message-sent', messageId);
+        		});
+        	})
+        	.on('send-private-message', (toUserId, message) => {
+        		message.fromUserId = connection.userId;
+        		console.log(`Connection [${connection.id}] sending message`, message);
+        		this.sendPrivateMessage(message)
+        		.then((messageId) => {
+       				connection.socket.emit('private-message-sent', messageId);
+        		});
+        	});
         });
 
         this.rtspServer = new RtspServer(webRtcServer);
@@ -196,6 +239,205 @@ class Server {
 		this.recordings[sourceId] = new Recording(sourceId, rtspUrl, filepath, logpath);
     }
 
+
+	addUser(user) {
+    	let d = new Date();
+    	let createdAt = d.getTime();
+    	let columns = ['id', 'createdAt'];
+    	let values = [user.id, createdAt];
+    	
+    	if(user.email) {
+        	columns.push('email');
+        	values.push(user.email);
+    	}
+
+    	if(user.password) {
+        	columns.push('password');
+        	values.push(user.password);
+    	}
+
+    	if(user.title) {
+        	columns.push('title');
+        	values.push(user.title);
+    	}
+
+    	if(user.description) {
+        	columns.push('description');
+        	values.push(user.description);
+    	}
+
+    	if(user.image) {
+        	columns.push('image');
+        	values.push(user.image);
+    	}
+    	let columnsStr = columns.join(', ');
+    	let valuesStr = values.map(() => '?').join(', ');
+    	
+    	let sql = `INSERT INTO users (${columnsStr}) VALUES (${valuesStr})`;
+    	console.log(`SQL: ${sql}`);
+    	this.db.run(sql, values, (err) => {
+			if(err) {
+				console.error(err);
+			}
+		});
+	}
+
+	login(email, password) {
+        return new Promise((resolve, reject) => {
+    		let sql = `SELECT * FROM users WHERE email = ?`;
+    		console.log(`SQL: ${sql}`);
+        	this.db.all(sql, [email], (err, row) => {
+    			if(err) {
+    				reject('User not found');
+    			}
+    			else {
+    				let user = this.db2marker(row);
+    				if(password === user.password) {
+    					delete user.password;
+    					resolve(user);
+    				}
+    				else {
+    					reject('Wrong password');
+    				}
+    			}
+    		});
+		});
+	}
+
+	updateUser(userId, user) {
+    	let values = [];
+    	let updates = [];
+    	
+    	if(user.email) {
+    		updates.push('email = ?');
+        	values.push(user.email);
+    	}
+
+    	if(user.password) {
+    		updates.push('password = ?');
+        	values.push(user.password);
+    	}
+
+    	if(user.title) {
+    		updates.push('title = ?');
+        	values.push(user.title);
+    	}
+
+    	if(user.description) {
+    		updates.push('description = ?');
+        	values.push(user.description);
+    	}
+
+    	if(user.image) {
+    		updates.push('image = ?');
+        	values.push(user.image);
+    	}
+    	let updatesStr = updates.join(', ');
+    	values.push(userId);
+
+    	let sql = `UPDATE users SET ${updatesStr} WHERE id = ?`;    	
+    	console.log(`SQL: ${sql}`);
+    	this.db.run(sql, values, (err) => {
+			if(err) {
+				console.error(err);
+			}
+		});
+	}
+
+	getUser(userId) {
+        return new Promise((resolve, reject) => {
+    		let sql = `SELECT * FROM users WHERE id = ?`;
+    		console.log(`SQL: ${sql}`);
+        	this.db.all(sql, [userId], (err, row) => {
+    			if(err) {
+    				reject('User not found');
+    			}
+    			else {
+    				resolve(this.db2marker(row));
+    			}
+    		});
+		});
+	}
+	
+	sendMessage(message) {
+        return new Promise((resolve, reject) => {
+        	let d = new Date();
+        	let createdAt = d.getTime();
+        	let columns = ['type', 'createdAt'];
+        	let values = [message.type, createdAt];
+        	
+        	if(message.title) {
+            	columns.push('title');
+            	values.push(message.title);
+        	}
+    
+        	if(message.description) {
+            	columns.push('description');
+            	values.push(message.description);
+        	}
+    
+        	if(message.image) {
+            	columns.push('image');
+            	values.push(message.image);
+        	}
+    
+        	if(message.lat) {
+            	columns.push('lat');
+            	values.push(message.lat);
+        	}
+    
+        	if(message.lng) {
+            	columns.push('lng');
+            	values.push(message.lng);
+        	}
+    
+        	if(message.radius) {
+            	columns.push('radius');
+            	values.push(message.radius);
+        	}
+        	
+        	let columnsStr = columns.join(', ');
+        	let valuesStr = values.map(() => '?').join(', ');
+        	
+        	let sql = `INSERT INTO messages (${columnsStr}) VALUES (${valuesStr})`;
+        	console.log(`SQL: ${sql}`);
+        	this.db.run(sql, values, function(err) {
+    			if(err) {
+    				console.error(err);
+    			}
+    
+    			resolve(this.lastID);
+    		});
+		});
+	}
+
+	sendPrivateMessage(message) {
+        return new Promise((resolve, reject) => {
+        	let d = new Date();
+        	let createdAt = d.getTime();
+        	let columns = ['createdAt', 'message', 'fromUserId', 'toUserId'];
+        	let values = [createdAt, message.message, message.fromUserId, message.toUserId];
+        	
+        	if(message.image) {
+            	columns.push('image');
+            	values.push(message.image);
+        	}
+        	
+        	let columnsStr = columns.join(', ');
+        	let valuesStr = values.map(() => '?').join(', ');
+        	
+        	let sql = `INSERT INTO privateMessages (${columnsStr}) VALUES (${valuesStr})`;
+        	console.log(`SQL: ${sql}`);
+        	this.db.run(sql, values, function(err) {
+    			if(err) {
+    				console.error(err);
+    			}
+    
+    			resolve(this.lastID);
+    		});
+		});
+	}
+    
     json(request) {
         let filePath = request.url;
         let method = path.basename(filePath, '.json');
@@ -225,9 +467,14 @@ class Server {
 
     markers(bounds) {
     	let {south, west, north, east} = bounds;
-
+		
         return new Promise((resolve, reject) => {
-        	this.db.all('SELECT * FROM markers', (err, rows) => {
+    		let d = new Date();
+    		let deprecatedTime = d.getTime() - (1000 * 60 * 60 * 12); // 12 hours ago
+
+    		let sql = `SELECT * FROM markers WHERE createdAt > ${deprecatedTime}`;
+    		console.log(`SQL: ${sql}`);
+        	this.db.all(sql, (err, rows) => {
 				if(err) {
 					reject(err);
 				}
@@ -263,13 +510,16 @@ class Server {
         	let This = this;
         	
         	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng) VALUES (?, ?, ?, ?, ?, ?)';
+        	console.log(`SQL: ${sql}`);
         	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng], function(err) {
     			if(err) {
     				return reject(err);
     			}
     
     			let lastID = this.lastID;
-    			This.db.get(`SELECT * FROM markers WHERE id = ${lastID}`, (err, row) => {
+    			let sql = `SELECT * FROM markers WHERE id = ${lastID}`;
+    			console.log(`SQL: ${sql}`);
+    			This.db.get(sql, (err, row) => {
     				if(err) {
     					reject(err);
     				}
