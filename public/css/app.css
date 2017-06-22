@@ -30,9 +30,19 @@ div{
 #legend div{
     text-align: center;
 }
+
 #legendTitle{
     font-size: 30px;
 }
+
+#legendTime{
+	position: absolute;
+}
+#legendUser{
+	position: absolute;
+	cursor: pointer;
+}
+
 .close{
     cursor: pointer;
 }
@@ -116,3 +126,6 @@ textarea{
     background-color: #f3f3f3;
 }
 
+#userProfile {
+	display: none;
+}

@@ -158,6 +158,9 @@ function initSocketIo() {
         	login(userId);
         	updateUserUI();
         }
+        else {
+        	showUserDetails(user);
+        }
     });
 
     socket.on('message-sent', function(messageId){
@@ -316,6 +319,14 @@ function login(email, password) {
 	send('login', email, password);
 }
 
+function submitUser(){
+	// TODO add image
+	let email = jQuery('#email').val();
+	let password = jQuery('#password').val();
+	let title = jQuery('#name').val();
+	let description = jQuery('#userDetails').val();
+	updateUser(email, password, title, description);
+}
 /**
  * No argument is mandatory
  */
@@ -485,7 +496,7 @@ function initMap(location, zoom) {
     map.addListener('bounds_changed', () => {
         loadMarkers();
         hideLoader();
-});
+    });
 
     map.setOptions({
         styles : styles
@@ -505,9 +516,9 @@ function loadMarkers() {
             contentType : 'application/json',
             data: JSON.stringify(bounds),
             success: (markers) => {
-            addMarkers(markers);
-}
-});
+            	addMarkers(markers);
+            }
+    });
 }
 
 function addMarkers(markers) {
@@ -544,9 +555,40 @@ function showMarker(markerData) {
     else {
         jQuery('#kaltura_player_1497188473').hide();
     }
+    let date = new Date(markerData.createdAt);
+    let time = pad(date.getHours()) + ':' + pad(date.getMinutes());
+
+    jQuery('#legendTime').text(time);
+    jQuery('#legendUser').text(markerData.userTitle);
     jQuery('#legendTitle').text(markerData.title);
     jQuery('#legendDescription').text(markerData.description);
     jQuery('#legend').show();
+
+    jQuery('#legendTime').offset({
+    	top: jQuery('#legend').offset().top + 25,
+    	left: jQuery('#legendDescription').offset().left + jQuery('#legendDescription').width() - jQuery('#legendTime').width()
+    });
+    jQuery('#legendUser').offset({
+    	top: jQuery('#legend').offset().top + 25,
+    	left: jQuery('#legendDescription').offset().left
+    });
+    
+    $("#legendUser")
+    .prop('onclick', null)
+    .off('click');
+    
+    $("#legendUser").click({
+    	getUser(markerData.userId);
+    });
+}
+
+function showUserDetails(user){
+	// TODO
+}
+
+function pad(input) {
+	let padding = '00';
+	return (padding + input).slice(-padding.length);
 }
 
 function hideMarker() {

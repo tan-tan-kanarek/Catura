@@ -493,6 +493,26 @@ class Server {
 			});
         });
     }
+
+    reports(bounds) {
+    	let {south, west, north, east} = bounds;
+		
+        return new Promise((resolve, reject) => {
+    		let d = new Date();
+    		let deprecatedTime = d.getTime() - (1000 * 60 * 60 * 24 * 30); // 3 months ago
+
+    		let sql = `SELECT * FROM reports WHERE createdAt > ${deprecatedTime}`;
+    		console.log(`SQL: ${sql}`);
+        	this.db.all(sql, (err, rows) => {
+				if(err) {
+					reject(err);
+				}
+				else {
+					resolve(rows.map((row) => this.db2marker(row)));
+				}
+			});
+        });
+    }
     
     db2marker(row) {
     	return {
@@ -502,6 +522,7 @@ class Server {
             },
             id : row.id,
             userId : row.userId,
+            userTitle : row.userTitle,
             title : row.title,
             description : row.description,
             entryId : row.entryId,
@@ -519,9 +540,9 @@ class Server {
         	let createdAt = d.getTime();
         	let This = this;
         	
-        	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng, userId) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng, userId, userTitle) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
         	console.log(`SQL: ${sql}`);
-        	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng, marker.userId], function(err) {
+        	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng, marker.userId, marker.userTitle], function(err) {
     			if(err) {
     				return reject(err);
     			}
@@ -598,14 +619,22 @@ class Server {
     
     addMarker(marker) {
         if(marker.recordingId && marker.recordingId.length) {
-        	return this.createEntry(marker)
+        	return getUser(userId)
+        	.then((user) => {
+        		marker.userTitle = user.title;
+        		return this.createEntry(marker);
+        	})
         	.then((entryId) => {
         		this.uploadEntry(entryId, marker.recordingId);
         		return this.addMarkerToDB(marker, entryId);
         	});
         }
         else {
-        	return this.addMarkerToDB(marker);
+        	return getUser(userId)
+        	.then((user) => {
+        		marker.userTitle = user.title;
+        		return this.addMarkerToDB(marker)
+        	});
         }
     }
 }
