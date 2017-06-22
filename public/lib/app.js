@@ -476,8 +476,11 @@ function playVideo(element, stream) {
     element.volume = 0;
 }
 
-function hideForm() {
-    jQuery('#form').hide();
+function hideForm(id) {
+    if (!id){
+        id="form";
+    }
+    jQuery('#'+id).hide();
     stop();
 }
 
