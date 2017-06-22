@@ -250,7 +250,7 @@ function joinRoom(roomId) {
  */
 function addUser(userId, email, password, title, description, image) {
 	let user = {
-		userId: userId
+		id: userId
 	};
 
 	if(email) {
