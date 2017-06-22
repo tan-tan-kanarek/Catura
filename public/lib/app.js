@@ -10,6 +10,8 @@ let peerConnection = null;
 let usePlanB = false;
 let isRecording = false;
 let recordingStartTime = null;
+let userID = null;
+
 
 styles = [
     {
@@ -29,6 +31,7 @@ styles = [
 
 function init() {
     updateHeight();
+    checkUser();
     localVideo = document.getElementById('localVideo');
 
     if (window.window.webkitRTCPeerConnection) {
@@ -71,6 +74,29 @@ function init() {
 
     initSocketIo();
 }
+
+function checkUser(){
+
+   if (readCookie('userID')){
+       userID = readCookie('userID')
+   }
+   else {
+       userID = Math.ceil(Math.random()*10000000000000000);
+   }
+   //getUser(userID);
+    updateUserUI();
+}
+
+function updateUserUI(){
+    $("#loginBtn").hide();
+    $("#signupBtn").hide();
+    $("#userDetail").hide();
+
+    //user is connected:
+    $("#userDetail").show().(userID);
+
+}
+
 
 function initSocketIo() {
     socket = io();
@@ -499,9 +525,8 @@ function showMarker(markerData) {
         kWidget.embed({
             'targetId': 'kaltura_player_1497188473',
             'wid': '_1676801',
-            'uiconf_id': 39358152,
+            'uiconf_id': 39738641,
             'flashvars': {
-                'streamerType': 'auto',
                 'autoPlay': true
             },
             //'cache_st': 1497188473,
@@ -519,7 +544,7 @@ function showMarker(markerData) {
 function hideMarker() {
     jQuery('#legend').hide();
     var player = document.getElementById('kaltura_player_1497188473');
-    if(player) {
+    if(player && player.sendNotification) {
         player.sendNotification('doStop');
     }
 }
@@ -651,6 +676,11 @@ function openForm() {
     jQuery('#title').val(jQuery('#search').val());
     jQuery('#description').val('');
     jQuery('#form').show();
+}
+
+function openUserForm(){
+    $('#userForm').show();
+
 }
 
 function hideActions(){

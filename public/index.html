@@ -9,6 +9,11 @@
 	<link rel="stylesheet" href="css/app.css" />
 </head>
 <body dir="rtl">
+    <div id="userDetails" class="hover left">
+		<div id="loginBtn" onclick="login()">התחבר</div>
+		<div id="signupBtn" onclick="openUserForm()">הרשם</div>
+		<div id="userDetail">הי משה</div>
+	</div>
 	<div class="search">
 		<input id="search" type="text" placeholder="חפש כתובת" />
 	</div>
@@ -38,6 +43,7 @@
 		<div id="add" class="button" onclick="openForm();">דרוש מאכיל</div>
 		<div id="add" class="button" onclick="openForm();">דרוש ווטרינר</div>
 		<div id="add" class="button" onclick="openForm();">דרוש חתול</div>
+		<div id="add" class="button addUser" onclick="openUserForm();">הירשם</div>
 		<div id="add" class="button" onclick="hideActions();">ביטול</div>
 	</div>
 	<div id="spinner" >
@@ -46,7 +52,7 @@
 	<div id="start">
 		<div id="add" class="button" onclick="openActions();">דיווח</div>
 	</div>
-	<div id="form" align="center">
+	<div id="form" class="form" align="center">
 		<div class="fields">
 			<input id="title" type="text" placeholder="כתובת" />
 			<textarea id="description" placeholder="הערות"></textarea>
@@ -67,19 +73,22 @@
 	</div>
 
 
-	<div id="userform" align="center">
+	<div id="userForm" align="center" class="form" style="display: none">
 		<div class="fields">
-			<input id="title" type="text" placeholder="שם" />
-			<textarea id="description" placeholder="פרטים"></textarea>
-			<div class="button" onclick="addUser();">שלח</div>
+			<input id="name" type="text" placeholder="שם" />
+			<input id="email" type="email" placeholder="מייל" />
+			<input id="password" type="password" placeholder="סיסמה" />
+			<textarea id="userDetails" placeholder="פרטים"></textarea>
+			<div class="button" onclick="addUser();">הרשם</div>
 			<div>
-				&lt;&lt; <span class="close" onclick="hideForm('userform');">סגור</span> &gt;&gt;
+				&lt;&lt; <span class="close" onclick="hideForm('userForm');">סגור</span> &gt;&gt;
 			</div>
 		</div>
 	</div>
 	<input id="recordingId" type="hidden" />
 	<input id="lat" type="hidden" />
 	<input id="lng" type="hidden" />
+	<script src ="lib/utils.js"></script>
 	<script src ="lib/app.js"></script>
 	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHbHtSrlsei68ZDvmkDBuvtARDeytLe1Y&language=he&libraries=places&callback=init" async defer></script>
 </body>
