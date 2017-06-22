@@ -10,7 +10,7 @@ let peerConnection = null;
 let usePlanB = false;
 let isRecording = false;
 let recordingStartTime = null;
-let userID = null;
+let userId = null;
 
 
 styles = [
@@ -31,7 +31,7 @@ styles = [
 
 function init() {
     updateHeight();
-    checkUser();
+    
     localVideo = document.getElementById('localVideo');
 
     if (window.window.webkitRTCPeerConnection) {
@@ -73,18 +73,21 @@ function init() {
     }
 
     initSocketIo();
+    checkUser();
 }
 
 function checkUser(){
-
-   if (readCookie('userID')){
-       userID = readCookie('userID')
-   }
-   else {
-       userID = Math.ceil(Math.random()*10000000000000000);
-   }
-   //getUser(userID);
-    updateUserUI();
+    if (readCookie('userId')){
+    	userId = readCookie('userId')
+    	if(userId) {
+    	    getUser(userId);
+    	}
+    }
+    else {
+    	userId = Math.ceil(Math.random()*10000000000000000);
+    	createCookie('userId', userId);
+    	addUser(userId);
+    }
 }
 
 function updateUserUI(){
@@ -93,8 +96,7 @@ function updateUserUI(){
     $("#userDetail").hide();
 
     //user is connected:
-    $("#userDetail").show().(userID);
-
+    $("#userDetail").show();
 }
 
 
@@ -149,7 +151,13 @@ function initSocketIo() {
 
     socket.on('get-user', function(user){
         console.log('Receive [get-user]', user);
-        // TODO
+        if(!user.id) {
+        	addUser(userId);
+        }
+        else if(user.id === userId) {
+        	login(userId);
+        	updateUserUI();
+        }
     });
 
     socket.on('message-sent', function(messageId){
@@ -556,6 +564,7 @@ function add() {
             lat: parseFloat(jQuery('#lat').val()),
             lng: parseFloat(jQuery('#lng').val())
         },
+        userId: userId,
         title: jQuery('#title').val(),
         description: jQuery('#description').val(),
         recordingId: jQuery('#recordingId').val()

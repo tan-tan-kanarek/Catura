@@ -16,6 +16,14 @@ const streamer = new ffmpeg({
 	enableDebug: true
 });
 
+const MessageType = {
+	FEEDER_WANTED: 1,
+	VET_WANTED: 2,
+	CAT_WANTED: 3,
+	FOOD_GIVEAWAY: 4,
+	CAT_LOST: 5
+};
+
 class Recording {
 	constructor(id, rtspUrl, filepath, logpath) {
 		this.id = id;
@@ -165,6 +173,7 @@ class Server {
         	connection.socket
         	.on('add-user', (user) => {
         		console.log(`Connection [${connection.id}] adding user`, user);
+        		connection.userId = user.id;
         		this.addUser(user);
         	})
         	.on('login', (email, password) => {
@@ -353,7 +362,7 @@ class Server {
     				reject('User not found');
     			}
     			else {
-    				resolve(this.db2marker(row));
+    				resolve(row);
     			}
     		});
 		});
@@ -492,6 +501,7 @@ class Server {
             	lng: row.lng
             },
             id : row.id,
+            userId : row.userId,
             title : row.title,
             description : row.description,
             entryId : row.entryId,
@@ -509,9 +519,9 @@ class Server {
         	let createdAt = d.getTime();
         	let This = this;
         	
-        	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng) VALUES (?, ?, ?, ?, ?, ?)';
+        	let sql = 'INSERT INTO markers (title, description, entryId, createdAt, lat, lng, userId) VALUES (?, ?, ?, ?, ?, ?, ?)';
         	console.log(`SQL: ${sql}`);
-        	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng], function(err) {
+        	this.db.run(sql, [marker.title, marker.description, entryId, createdAt, marker.position.lat, marker.position.lng, marker.userId], function(err) {
     			if(err) {
     				return reject(err);
     			}
