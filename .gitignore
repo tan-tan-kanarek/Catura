@@ -49,3 +49,4 @@ jspm_packages
 recordings
 config/kaltura.js
 db/db.sqlite
+/contacts/
