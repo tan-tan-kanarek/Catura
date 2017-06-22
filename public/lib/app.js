@@ -93,7 +93,7 @@ function updateUserUI(){
     $("#userDetail").hide();
 
     //user is connected:
-    $("#userDetail").show().(userID);
+    $("#userDetail").show()
 
 }
 
