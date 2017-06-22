@@ -619,7 +619,7 @@ class Server {
     
     addMarker(marker) {
         if(marker.recordingId && marker.recordingId.length) {
-        	return getUser(userId)
+        	return this.getUser(marker.userId)
         	.then((user) => {
         		marker.userTitle = user.title;
         		return this.createEntry(marker);
@@ -630,7 +630,7 @@ class Server {
         	});
         }
         else {
-        	return getUser(userId)
+        	return this.getUser(marker.userId)
         	.then((user) => {
         		marker.userTitle = user.title;
         		return this.addMarkerToDB(marker)

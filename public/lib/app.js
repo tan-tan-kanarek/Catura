@@ -573,11 +573,11 @@ function showMarker(markerData) {
     	left: jQuery('#legendDescription').offset().left
     });
     
-    $("#legendUser")
+    jQuery("#legendUser")
     .prop('onclick', null)
     .off('click');
     
-    $("#legendUser").click({
+    jQuery("#legendUser").click(() => {
     	getUser(markerData.userId);
     });
 }
